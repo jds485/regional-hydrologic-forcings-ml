@@ -1,7 +1,7 @@
 library(targets)
 library(tarchetypes)
 library(readxl)
-options(clustermq.scheduler = "multiprocess")
+options(clustermq.scheduler = "multicore")
 library(clustermq)
 options(tidyverse.quiet = TRUE)
 library(tidyverse)
@@ -194,12 +194,12 @@ list(
   tar_target(p1_screen_daily_flow_season,
              screen_daily_data(p1_has_data, p1_prescreen_daily_data, season_year_start),
              map(p1_has_data),
-             deployment = 'main'
+             deployment = 'worker'
   ),
   tar_target(p1_screen_daily_flow_season_high,
              screen_daily_data(p1_has_data, p1_prescreen_daily_data, season_year_start_high),
              map(p1_has_data),
-             deployment = 'main'
+             deployment = 'worker'
   ),
   
   ##select sites with enough complete years
@@ -222,21 +222,21 @@ list(
              clean_daily_data(p1_screened_site_list, p1_prescreen_daily_data, 
                               p1_screen_daily_flow, yearType, year_start),
              map(p1_screened_site_list),
-             deployment = 'main'
+             deployment = 'worker'
   ),
   ##seasonal
   tar_target(p1_clean_daily_flow_season,
              clean_daily_data(p1_screened_site_list_season, p1_prescreen_daily_data, 
                               p1_screen_daily_flow_season, yearType, season_year_start),
              map(p1_screened_site_list_season),
-             deployment = 'main'
+             deployment = 'worker'
   ),
   tar_target(p1_clean_daily_flow_season_high,
              clean_daily_data(p1_screened_site_list_season_high, p1_prescreen_daily_data, 
                               p1_screen_daily_flow_season_high, yearType, 
                               season_year_start_high),
              map(p1_screened_site_list_season_high),
-             deployment = 'main'
+             deployment = 'worker'
   ),
   
   #get drainage area from NWIS
