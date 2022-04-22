@@ -181,25 +181,40 @@ list(
              map(p1_daily_flow_csv),
              deployment = 'worker'
   ),
+  tar_target(p1_prescreen_daily_data_groups, 
+             p1_prescreen_daily_data %>%
+               group_by(site_no) %>%
+               tar_group(),
+             deployment = 'worker',
+             iteration = 'group'
+  ),
   
   ##compute the number of complete years based on when the year starts
   #These are being run on main because parallel processing is taking too long.
   #Likely because the mapped branches build quickly and the prescreen data are large
   tar_target(p1_screen_daily_flow,
-             screen_daily_data(p1_has_data, p1_prescreen_daily_data, year_start),
-             map(p1_has_data),
-             deployment = 'main'
+             screen_daily_data(p1_prescreen_daily_data_groups, year_start),
+             map(p1_prescreen_daily_data_groups),
+             deployment = 'worker'
   ),
   ##For seasonal analysis
   tar_target(p1_screen_daily_flow_season,
              screen_daily_data(p1_has_data, p1_prescreen_daily_data, season_year_start),
              map(p1_has_data),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   tar_target(p1_screen_daily_flow_season_high,
              screen_daily_data(p1_has_data, p1_prescreen_daily_data, season_year_start_high),
              map(p1_has_data),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   
   ##select sites with enough complete years
@@ -222,21 +237,33 @@ list(
              clean_daily_data(p1_screened_site_list, p1_prescreen_daily_data, 
                               p1_screen_daily_flow, yearType, year_start),
              map(p1_screened_site_list),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   ##seasonal
   tar_target(p1_clean_daily_flow_season,
              clean_daily_data(p1_screened_site_list_season, p1_prescreen_daily_data, 
                               p1_screen_daily_flow_season, yearType, season_year_start),
              map(p1_screened_site_list_season),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   tar_target(p1_clean_daily_flow_season_high,
              clean_daily_data(p1_screened_site_list_season_high, p1_prescreen_daily_data, 
                               p1_screen_daily_flow_season_high, yearType, 
                               season_year_start_high),
              map(p1_screened_site_list_season_high),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   
   #get drainage area from NWIS
@@ -345,7 +372,11 @@ list(
                              norm_ml17 = metrics_ml17,
                              out_format = 'pivot'),
              map(p1_screened_site_list),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   
   ##compute additional FDC-based metrics for screened sites list
@@ -359,7 +390,11 @@ list(
                              year_start = year_start,
                              out_format = 'pivot'),
              map(p1_screened_site_list),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   
   ##compute seasonal FDC-based metrics using water year seasons
@@ -375,7 +410,11 @@ list(
                              year_start = season_year_start,
                              out_format = 'pivot'),
              map(p1_screened_site_list_season),
-             deployment = 'worker'
+             deployment = 'main',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "main",
+             retrieval = "main"
   ),
   
   ##compute seasonal FDC-based metrics using high flow seasons
@@ -391,7 +430,11 @@ list(
                              year_start = season_year_start_high,
                              out_format = 'pivot'),
              map(p1_screened_site_list_season_high),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   
   ##Cluster analysis to make model regions from FDC metrics
@@ -420,6 +463,10 @@ list(
                                    dir_out = '3_cluster/out/seasonal_plots/barplots/CONUS/'),
              map(p3_metric_names),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
 
   #Compute clusters
@@ -428,20 +475,32 @@ list(
                                      metric = p3_metric_names,
                                      dist_method = 'euclidean'),
              map(p3_metric_names),
-             deployment = 'worker'),
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"),
   tar_target(p3_FDC_clusters_quants,
              seasonal_metric_cluster(metric_mat = p1_FDC_metrics_season,
                                      metric = p3_metric_names_quants,
                                      dist_method = 'euclidean'),
              map(p3_metric_names_quants),
-             deployment = 'worker'),
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"),
   tar_target(p3_FDC_clusters_quants_agg,
              seasonal_metric_cluster(metric_mat = p1_FDC_metrics_season,
                                      metric = p3_metric_names_quants_agg,
                                      dist_method = 'euclidean',
                                      quantile_agg = TRUE),
              map(p3_metric_names_quants_agg),
-             deployment = 'worker'),
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"),
   
   #Select only the best clustering method
   tar_target(p3_FDC_best_cluster_method,
@@ -465,7 +524,11 @@ list(
                                          dist_method = 'euclidean',
                                          clust_method = 'ward.D2'),
              map(p3_FDC_clusters),
-             deployment = 'worker'),
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"),
   tar_target(p3_FDC_cluster_diagnostics_quants,
              compute_cluster_diagnostics(clusts = p3_FDC_clusters_quants,
                                          metric_mat = p1_FDC_metrics_season,
@@ -475,7 +538,11 @@ list(
                                          dist_method = 'euclidean',
                                          clust_method = 'ward.D2'),
              map(p3_FDC_clusters_quants),
-             deployment = 'worker'),
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"),
   tar_target(p3_FDC_cluster_diagnostics_quants_agg,
              compute_cluster_diagnostics(clusts = p3_FDC_clusters_quants_agg,
                                          metric_mat = p1_FDC_metrics_season,
@@ -486,7 +553,11 @@ list(
                                          clust_method = 'ward.D2',
                                          quantile_agg = TRUE),
              map(p3_FDC_clusters_quants_agg),
-             deployment = 'worker'),
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"),
   
   #Plot diagnostics for clusters
   tar_target(p3_FDC_cluster_diagnostics_png,
@@ -498,6 +569,10 @@ list(
                                       dir_out = '3_cluster/out/seasonal_plots/diagnostics/'),
              map(p3_FDC_clusters, p3_FDC_cluster_diagnostics),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
   tar_target(p3_FDC_cluster_diagnostics_quants_png,
              plot_cluster_diagnostics(clusts = p3_FDC_clusters_quants,
@@ -508,6 +583,10 @@ list(
                                       dir_out = '3_cluster/out/seasonal_plots/diagnostics/by_quantiles'),
              map(p3_FDC_clusters_quants, p3_FDC_cluster_diagnostics_quants),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
   tar_target(p3_FDC_cluster_diagnostics_quants_agg_png,
              plot_cluster_diagnostics(clusts = p3_FDC_clusters_quants_agg,
@@ -519,6 +598,10 @@ list(
                                       quantile_agg = TRUE),
              map(p3_FDC_clusters_quants_agg, p3_FDC_cluster_diagnostics_quants_agg),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
   
   #Assign cluster numbers to gages
@@ -590,6 +673,10 @@ list(
                                    dir_out = '3_cluster/out/seasonal_plots/barplots/'),
              map(p3_metric_names),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
   tar_target(p3_seasonal_barplot_clusters_quants_png,
              plot_seasonal_barplot(metric_mat = p1_FDC_metrics_season,
@@ -602,6 +689,10 @@ list(
                                    by_quantile = TRUE),
              map(p3_metric_names_quants),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
   tar_target(p3_seasonal_barplot_clusters_quants_agg_png,
              plot_seasonal_barplot(metric_mat = p1_FDC_metrics_season,
@@ -615,6 +706,10 @@ list(
                                    by_quantile = TRUE),
              map(p3_metric_names_quants_agg),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = 'file'),
 
   
@@ -636,7 +731,11 @@ list(
                                          digits = 3, seasonal = FALSE,
                                          year_start = year_start),
              map(p1_screened_site_list),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
   ),
   
   ##screen out any sites that don't have enough moving windows to plot (min_windows)
@@ -654,6 +753,10 @@ list(
                                 outdir = "1_fetch/out/stationarity_plots"),
              map(p1_screened_plot_sites),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = "file"
   ),
   
@@ -664,6 +767,10 @@ list(
                                 by_cluster = FALSE,
                                 outdir = "1_fetch/out/stationarity_plots"),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = "file"
   ),
   
@@ -677,6 +784,10 @@ list(
                                 outdir = "1_fetch/out/stationarity_plots"),
              map(p3_cluster_cols),
              deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker",
              format = "file"
   ),
   #This will not work because it doesn't know to split by quantile
@@ -696,6 +807,10 @@ list(
   tar_target(p4_nested_gages,
              get_nested_gages(gagesii = p1_sites_g2,
                               nav_distance_km = nav_distance_km),
-             deployment = 'worker'
+             deployment = 'worker',
+             garbage_collection = TRUE,
+             memory = "transient",
+             storage = "worker",
+             retrieval = "worker"
             )  
 ) #end list
